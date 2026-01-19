@@ -1,59 +1,240 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Yggdrasil - Proxmox VE Control Panel
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A modern, self-hosted control panel for managing Proxmox VE virtual machines with multi-tenancy, IPAM, and advanced VM lifecycle management.
 
-## About Laravel
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Laravel](https://img.shields.io/badge/Laravel-11-red.svg)
+![PHP](https://img.shields.io/badge/PHP-8.3-purple.svg)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## ✨ Features
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- 🖥️ **VM Lifecycle Management** - Create, start, stop, migrate, and reinstall VMs
+- 🎮 **NoVNC Console** - Browser-based VNC access to VMs
+- 📸 **Snapshots** - Create, rollback, and manage VM snapshots
+- 🔧 **Hot-plug Resources** - Adjust CPU and RAM without rebooting
+- 🌐 **IPAM** - Automatic static IP assignment from pools
+- 🛡️ **Firewall Management** - Configure VM firewall rules
+- 🚨 **Rescue Mode** - Boot to rescue ISO for recovery
+- 👥 **Multi-tenancy** - User isolation with strict ownership checks
+- 📊 **Real-time Updates** - Live status polling on dashboard
+- 🔐 **Cloud-Init Support** - Automated VM provisioning with SSH keys
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 🚀 Quick Start (One-Liner Installation)
 
-## Learning Laravel
+```bash
+curl -fsSL https://raw.githubusercontent.com/akumalabs/yggdrasil/master/install.sh | bash
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Or manual installation:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+git clone https://github.com/akumalabs/yggdrasil.git && cd yggdrasil && composer install && npm install && npm run build && cp .env.example .env && php artisan key:generate && php artisan migrate && php artisan db:seed --class=IpAddressSeeder
+```
 
-## Laravel Sponsors
+## 📋 Requirements
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- PHP 8.3+
+- PostgreSQL 15+ (or MySQL 8+)
+- Composer 2.x
+- Node.js 20+ & npm
+- Redis (for queues)
+- Proxmox VE 8.x
 
-### Premium Partners
+## 🛠️ Installation
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### 1. Clone the Repository
 
-## Contributing
+```bash
+git clone https://github.com/akumalabs/yggdrasil.git
+cd yggdrasil
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 2. Install Dependencies
 
-## Code of Conduct
+```bash
+composer install
+npm install
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 3. Configure Environment
 
-## Security Vulnerabilities
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Edit `.env` and configure:
 
-## License
+```env
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=yggdrasil
+DB_USERNAME=postgres
+DB_PASSWORD=your_password
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+RESCUE_ISO=local:iso/debian-live.iso
+```
+
+### 4. Run Migrations & Seed IP Pool
+
+```bash
+php artisan migrate
+php artisan db:seed --class=IpAddressSeeder
+```
+
+### 5. Build Frontend Assets
+
+```bash
+npm run build
+```
+
+### 6. Start Queue Worker
+
+```bash
+php artisan queue:work --daemon
+```
+
+Or install Laravel Horizon:
+
+```bash
+composer require laravel/horizon
+php artisan horizon:install
+php artisan horizon
+```
+
+### 7. Serve Application
+
+**Development:**
+```bash
+php artisan serve
+```
+
+**Production (Nginx):**
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+    root /var/www/yggdrasil/public;
+
+    add_header X-Frame-Options "SAMEORIGIN";
+    add_header X-Content-Type-Options "nosniff";
+
+    index index.php;
+
+    charset utf-8;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    error_page 404 /index.php;
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+}
+```
+
+## 🔑 Proxmox API Token Setup
+
+1. **Log in to Proxmox Web UI**
+2. Navigate to **Datacenter → Permissions → API Tokens**
+3. Click **Add** and create a token with **PVEAdmin** privileges
+4. Copy the **Token ID** and **Secret**
+5. Run the following command to store it:
+
+```bash
+php artisan tinker
+```
+
+```php
+App\Models\ProxmoxToken::create([
+    'host' => 'your-proxmox-host.com',
+    'token_id' => 'user@pam!tokenname',
+    'token_secret' => 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+]);
+```
+
+## 📦 IP Pool Configuration
+
+The seeder creates 10 IPs by default (`192.168.1.50-59`). To customize:
+
+Edit `database/seeders/IpAddressSeeder.php`:
+
+```php
+for ($i = 100; $i < 200; $i++) {
+    \App\Models\IpAddress::create([
+        'ip' => "10.0.0.{$i}",
+        'gateway' => '10.0.0.1',
+        'netmask' => '24',
+    ]);
+}
+```
+
+Then reseed:
+
+```bash
+php artisan db:seed --class=IpAddressSeeder
+```
+
+## 🧪 Testing
+
+```bash
+php artisan test
+```
+
+Run unit tests only:
+
+```bash
+php artisan test --testsuite=Unit
+```
+
+## 📚 Architecture
+
+### Tech Stack
+
+- **Backend**: Laravel 11, PHP 8.3
+- **Frontend**: Vue 3, Inertia.js, Tailwind CSS
+- **Database**: PostgreSQL
+- **Queue**: Laravel Queues (Database/Redis)
+- **API Client**: Guzzle HTTP (Custom wrapper)
+
+### Key Components
+
+- **ProxmoxClient** - HTTP client wrapper for Proxmox API
+- **Jobs** - Async handlers for long-running operations (VM creation, migration)
+- **Multi-tenancy** - User-scoped queries via `user_id` foreign keys
+- **IPAM** - `IpAddress` model with `free()` scope for assignment
+
+## 🤝 Contributing
+
+Pull requests are welcome! For major changes, please open an issue first.
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Inspired by [VirtFusion](https://virtfusion.net/)
+- Built with [Laravel Breeze](https://github.com/laravel/breeze)
+- Console powered by [noVNC](https://github.com/novnc/noVNC)
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/akumalabs/yggdrasil/issues)
+- **Documentation**: [Wiki](https://github.com/akumalabs/yggdrasil/wiki)
+
+---
+
+Made with ❤️ for the Proxmox community
