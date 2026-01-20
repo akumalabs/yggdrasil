@@ -114,6 +114,30 @@ sudo systemctl daemon-reload
 sudo systemctl enable yggdrasil-queue
 sudo systemctl start yggdrasil-queue
 
+# Setup Laravel Scheduler cron
+echo "⏰ Setting up Laravel Scheduler..."
+(crontab -l 2>/dev/null | grep -v "yggdrasil/artisan schedule:run"; echo "* * * * * cd $(pwd) && php artisan schedule:run >> /dev/null 2>&1") | crontab -
+
+# Create first admin user
+echo ""
+echo "👤 Creating first admin user..."
+read -p "Admin name: " admin_name
+read -p "Admin email: " admin_email
+read -sp "Admin password: " admin_password
+echo
+
+php artisan tinker --execute="
+\$user = App\Models\User::create([
+    'name' => '$admin_name',
+    'email' => '$admin_email',
+    'password' => Hash::make('$admin_password'),
+    'role' => 'admin',
+    'email_verified_at' => now()
+]);
+echo 'Admin user created: ' . \$user->email;
+"
+
+echo ""
 echo "✅ Installation complete!"
 echo ""
 echo "📝 Next steps:"
@@ -121,7 +145,16 @@ echo "1. Configure your Proxmox API token:"
 echo "   php artisan tinker"
 echo "   > App\\Models\\ProxmoxToken::create(['host' => 'pve.example.com', 'token_id' => 'user@pam!token', 'token_secret' => 'secret']);"
 echo ""
-echo "2. Start the development server:"
+echo "2. (Optional) Configure real-time broadcasting in .env:"
+echo "   BROADCAST_CONNECTION=pusher"
+echo "   PUSHER_APP_KEY=your-key"
+echo "   PUSHER_APP_SECRET=your-secret"
+echo ""
+echo "3. Start the development server:"
 echo "   php artisan serve"
 echo ""
-echo "3. Visit: http://localhost:8000"
+echo "4. Visit: http://localhost:8000"
+echo ""
+echo "📊 Scheduled Tasks (runs via cron):"
+echo "   - Daily bandwidth tracking (midnight)"
+echo "   - Weekly backups (Sundays 2 AM, retention: 7)"
