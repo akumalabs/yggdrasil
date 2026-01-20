@@ -17,7 +17,7 @@ class ProxmoxClient
                 'Authorization' => "PVEAPIToken={$token}",
                 'Accept' => 'application/json',
             ],
-            'verify' => false, // In production this should be true or configured path
+            'verify' => env('PROXMOX_SSL_VERIFY', true),
             'timeout' => 30,
         ];
 

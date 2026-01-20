@@ -12,6 +12,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 
 class CloneVmJob implements ShouldQueue
 {
@@ -48,32 +49,36 @@ class CloneVmJob implements ShouldQueue
             'target' => $this->node,
         ]);
         
-        // Create local DB record
-        $vm = Vm::create([
-            'vmid' => $this->newVmid,
-            'name' => $this->name,
-            'hostname' => $this->hostname,
-            'node' => $this->node,
-            'status' => 'cloning',
-            'user_id' => $this->userId,
-            'upid' => $upid,
-            'bandwidth_limit' => $this->bandwidth,
-            'bandwidth_reset_date' => now()->startOfMonth(),
-        ]);
+        // Create VM record and assign IP atomically
+        $this->broadcast('Assigning IP address...', 50);
+        [$vm, $ip] = DB::transaction(function () use ($upid) {
+            // Create local DB record
+            $vm = Vm::create([
+                'vmid' => $this->newVmid,
+                'name' => $this->name,
+                'hostname' => $this->hostname,
+                'node' => $this->node,
+                'status' => 'cloning',
+                'user_id' => $this->userId,
+                'upid' => $upid,
+                'bandwidth_limit' => $this->bandwidth,
+                'bandwidth_reset_date' => now()->startOfMonth(),
+            ]);
+
+            // Assign IP with lock to prevent race conditions
+            $ip = IpAddress::lockForUpdate()->free()->first();
+            if (!$ip) {
+                throw new \Exception('No free IPs available');
+            }
+            $ip->update(['vm_id' => $vm->id, 'is_reserved' => true]);
+            
+            return [$vm, $ip];
+        });
 
         // Poll clone task
         $this->broadcast('Cloning VM...', 30);
         $this->pollTask($client, $upid);
         
-        // Step 2: Assign IP Address
-        $this->broadcast('Assigning IP address...', 50);
-        $ip = IpAddress::free()->first();
-        if (!$ip) {
-            $this->broadcast('No free IPs available', 0, 'error');
-            $this->fail(new \Exception('No free IPs available'));
-            return;
-        }
-        $ip->update(['vm_id' => $vm->id, 'is_reserved' => true]);
         $this->broadcast("Assigned IP: {$ip->ip}/{$ip->netmask}", 55);
         
         // Step 3: Customize resources

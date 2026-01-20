@@ -84,7 +84,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // API Routes (Authenticated)
-Route::middleware(['auth:sanctum'])->prefix('api')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('api')->group(function () {
     Route::get('/vms/{vmid}/metrics', [VmMetricsController::class, 'show']);
     Route::get('/vms/{vmid}/bandwidth', [VmBandwidthController::class, 'show']);
 });
