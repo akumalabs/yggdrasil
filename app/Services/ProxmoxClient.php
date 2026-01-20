@@ -151,4 +151,86 @@ class ProxmoxClient
             'boot' => "order={$order}"
         ]);
     }
+
+    // QEMU Guest Agent
+    public function getGuestAgentInfo(string $node, int $vmid): array
+    {
+        try {
+            return $this->get("/nodes/{$node}/qemu/{$vmid}/agent/info");
+        } catch (\Exception $e) {
+            return ['error' => 'Guest agent not running'];
+        }
+    }
+
+    public function getGuestOsInfo(string $node, int $vmid): array
+    {
+        return $this->get("/nodes/{$node}/qemu/{$vmid}/agent/get-osinfo");
+    }
+
+    public function getGuestDiskUsage(string $node, int $vmid): array
+    {
+        return $this->get("/nodes/{$node}/qemu/{$vmid}/agent/get-fsinfo");
+    }
+
+    public function getGuestNetworkInterfaces(string $node, int $vmid): array
+    {
+        return $this->get("/nodes/{$node}/qemu/{$vmid}/agent/network-get-interfaces");
+    }
+
+    // Helper: Get Next Available VMID
+    public function getNextVmid(): int
+    {
+        $resources = $this->clusterResources();
+        $existingVmids = $resources->pluck('vmid')->toArray();
+        
+        // Start from 100, find first available
+        $vmid = 100;
+        while (in_array($vmid, $existingVmids)) {
+            $vmid++;
+        }
+        
+        return $vmid;
+    }
+
+    // Templates
+    public function convertToTemplate(string $node, int $vmid): string
+    {
+        return $this->post("/nodes/{$node}/qemu/{$vmid}/template", []);
+    }
+
+    public function listTemplates(): array
+    {
+        $resources = $this->clusterResources();
+        return $resources->filter(fn($r) => isset($r['template']) && $r['template'] == 1)->values()->toArray();
+    }
+
+    // Backups
+    public function createBackup(string $node, int $vmid, string $storage = 'local', string $mode = 'snapshot'): string
+    {
+        return $this->post("/nodes/{$node}/vzdump", [
+            'vmid' => $vmid,
+            'storage' => $storage,
+            'mode' => $mode, // snapshot, suspend, stop
+            'compress' => 'zstd',
+        ]);
+    }
+
+    public function listBackups(string $node, string $storage = 'local'): array
+    {
+        return $this->get("/nodes/{$node}/storage/{$storage}/content?content=backup");
+    }
+
+    public function restoreBackup(string $node, int $newVmid, string $archive, string $storage = 'local'): string
+    {
+        return $this->post("/nodes/{$node}/qemu", [
+            'vmid' => $newVmid,
+            'archive' => $archive,
+            'storage' => $storage,
+        ]);
+    }
+
+    public function deleteBackup(string $node, string $storage, string $volid): string
+    {
+        return $this->post("/nodes/{$node}/storage/{$storage}/content/{$volid}", [], 'DELETE');
+    }
 }

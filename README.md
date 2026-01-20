@@ -8,16 +8,26 @@ A modern, self-hosted control panel for managing Proxmox VE virtual machines wit
 
 ## ✨ Features
 
-- 🖥️ **VM Lifecycle Management** - Create, start, stop, migrate, and reinstall VMs
+### Core VM Management
+- 🖥️ **VM Lifecycle** - Create from templates, start, stop, migrate, and reinstall VMs
 - 🎮 **NoVNC Console** - Browser-based VNC access to VMs
 - 📸 **Snapshots** - Create, rollback, and manage VM snapshots
 - 🔧 **Hot-plug Resources** - Adjust CPU and RAM without rebooting
+- 🚨 **Rescue Mode** - Boot to rescue ISO for recovery with auto-mounting
+
+### Advanced Features
+- 👥 **RBAC** - Admin (full control) and Client (limited management) roles
+- 📋 **Template System** - Convert VMs to templates, clone from templates with auto-VMID
+- 💾 **Backup Management** - Create, restore, scheduled backups with retention policies
+- 📊 **Resource Monitoring** - Real-time CPU/RAM/Disk/Network via QEMU Guest Agent
+- 📡 **Bandwidth Tracking** - Allocated vs used (TB/month) with daily RRD snapshots
+- ⚡ **Real-Time Progress** - WebSocket broadcasting for VM deployment status
+
+### Infrastructure
 - 🌐 **IPAM** - Automatic static IP assignment from pools
-- 🛡️ **Firewall Management** - Configure VM firewall rules
-- 🚨 **Rescue Mode** - Boot to rescue ISO for recovery
-- 👥 **Multi-tenancy** - User isolation with strict ownership checks
-- 📊 **Real-time Updates** - Live status polling on dashboard
+- 🛡️ **Firewall Management** - Configure VM firewall rules (admin-only)
 - 🔐 **Cloud-Init Support** - Automated VM provisioning with SSH keys
+- 📈 **Historical Metrics** - RRD data for graphs and trending
 
 ## 🚀 Quick Start (One-Liner Installation)
 
@@ -226,7 +236,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- Inspired by [VirtFusion](https://virtfusion.net/)
 - Built with [Laravel Breeze](https://github.com/laravel/breeze)
 - Console powered by [noVNC](https://github.com/novnc/noVNC)
 

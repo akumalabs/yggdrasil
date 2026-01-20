@@ -1,6 +1,14 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\VmController;
+use App\Http\Controllers\FirewallController;
+use App\Http\Controllers\SnapshotController;
+use App\Http\Controllers\StorageController;
+use App\Http\Controllers\Admin\VmController as AdminVmController;
+use App\Http\Controllers\Api\VmMetricsController;
+use App\Http\Controllers\Api\VmBandwidthController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -14,78 +22,74 @@ Route::get('/', function () {
     ]);
 });
 
-use App\Http\Controllers\VmController;
+// Admin Routes (Full Control)
+Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    
+    // VM Management (Admin Only)
+    Route::get('/vms', [AdminVmController::class, 'index'])->name('vms.index');
+    Route::get('/vms/create', [AdminVmController::class, 'create'])->name('vms.create');
+    Route::post('/vms', [AdminVmController::class, 'store'])->name('vms.store');
+    Route::delete('/vms/{vmid}', [AdminVmController::class, 'destroy'])->name('vms.destroy');
+    
+    // Migration (Admin Only)
+    Route::post('/vms/{vmid}/migrate', [VmController::class, 'migrate'])->name('vms.migrate');
+    
+    // Firewall (Admin Only)
+    Route::get('/vms/{vmid}/firewall', [FirewallController::class, 'index'])->name('firewall.index');
+    Route::post('/vms/{vmid}/firewall', [FirewallController::class, 'store'])->name('firewall.store');
+    
+    // Templates (Admin Only)
+    Route::get('/templates', [\App\Http\Controllers\Admin\TemplateController::class, 'index'])->name('templates.index');
+    Route::post('/templates', [\App\Http\Controllers\Admin\TemplateController::class, 'store'])->name('templates.store');
+    
+    // Backups (Admin Only)
+    Route::get('/vms/{vmid}/backups', [\App\Http\Controllers\Admin\BackupController::class, 'index'])->name('backups.index');
+    Route::post('/vms/{vmid}/backups', [\App\Http\Controllers\Admin\BackupController::class, 'store'])->name('backups.store');
+    Route::post('/backups/restore', [\App\Http\Controllers\Admin\BackupController::class, 'restore'])->name('backups.restore');
+    Route::delete('/backups', [\App\Http\Controllers\Admin\BackupController::class, 'destroy'])->name('backups.destroy');
+    
+    // Storage Browser (Admin Only)
+    Route::get('/storage', [StorageController::class, 'index'])->name('storage.index');
+});
 
-Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+// Client Routes (Limited - Management Only)
+Route::middleware(['auth', 'verified'])->prefix('client')->name('client.')->group(function () {
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    
+    // VM Management (Assigned VMs Only)
+    Route::post('/vms/{vmid}/power', [VmController::class, 'power'])->name('vms.power');
+    Route::post('/vms/{vmid}/reinstall', [VmController::class, 'reinstall'])->name('vms.reinstall');
+    Route::post('/vms/{vmid}/rescue', [VmController::class, 'rescue'])->name('vms.rescue');
+    Route::get('/vms/{vmid}/console', [VmController::class, 'console'])->name('vms.console');
+    Route::get('/vms/{vmid}', [VmController::class, 'show'])->name('vms.show');
+    Route::post('/vms/{vmid}/config', [VmController::class, 'update'])->name('vms.update');
+    
+    // Snapshots & Backups (Client Access)
+    Route::get('/vms/{vmid}/snapshots', [SnapshotController::class, 'index'])->name('snapshots.index');
+    Route::post('/vms/{vmid}/snapshots', [SnapshotController::class, 'store'])->name('snapshots.store');
+    Route::post('/vms/{vmid}/snapshots/{snapname}/rollback', [SnapshotController::class, 'rollback'])->name('snapshots.rollback');
+    Route::delete('/vms/{vmid}/snapshots/{snapname}', [SnapshotController::class, 'destroy'])->name('snapshots.destroy');
+});
 
-Route::post('/vms', [VmController::class, 'store'])
-    ->middleware(['auth', 'verified'])
-    ->name('vms.store');
+// Legacy routes - redirect based on role
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', function () {
+        if (auth()->user()->role === 'admin') {
+            return redirect()->route('admin.dashboard');
+        }
+        return redirect()->route('client.dashboard');
+    })->name('dashboard');
+});
 
-Route::post('/vms/{vmid}/power', [VmController::class, 'power'])
-    ->middleware(['auth', 'verified'])
-    ->name('vms.power');
+// API Routes (Authenticated)
+Route::middleware(['auth:sanctum'])->prefix('api')->group(function () {
+    Route::get('/vms/{vmid}/metrics', [VmMetricsController::class, 'show']);
+    Route::get('/vms/{vmid}/bandwidth', [VmBandwidthController::class, 'show']);
+});
 
-Route::post('/vms/{vmid}/migrate', [VmController::class, 'migrate'])
-    ->middleware(['auth', 'verified'])
-    ->name('vms.migrate');
-
-Route::post('/vms/{vmid}/reinstall', [VmController::class, 'reinstall'])
-    ->middleware(['auth', 'verified'])
-    ->name('vms.reinstall');
-
-Route::get('/vms/{vmid}/console', [VmController::class, 'console'])
-    ->middleware(['auth', 'verified'])
-    ->name('vms.console');
-
-Route::get('/vms/{vmid}', [VmController::class, 'show'])
-    ->middleware(['auth', 'verified'])
-    ->name('vms.show');
-
-Route::post('/vms/{vmid}/config', [VmController::class, 'update'])
-    ->middleware(['auth', 'verified'])
-    ->name('vms.update');
-
-Route::post('/vms/{vmid}/rescue', [VmController::class, 'rescue'])
-    ->middleware(['auth', 'verified'])
-    ->name('vms.rescue');
-
-use App\Http\Controllers\FirewallController;
-
-Route::get('/vms/{vmid}/firewall', [FirewallController::class, 'index'])
-    ->middleware(['auth', 'verified'])
-    ->name('vms.firewall');
-
-Route::post('/vms/{vmid}/firewall', [FirewallController::class, 'store'])
-    ->middleware(['auth', 'verified'])
-    ->name('vms.firewall.store');
-
-use App\Http\Controllers\SnapshotController;
-
-Route::get('/vms/{vmid}/snapshots', [SnapshotController::class, 'index'])
-    ->middleware(['auth', 'verified'])
-    ->name('vms.snapshots');
-
-Route::post('/vms/{vmid}/snapshots', [SnapshotController::class, 'store'])
-    ->middleware(['auth', 'verified'])
-    ->name('vms.snapshots.store');
-
-Route::post('/vms/{vmid}/snapshots/{snapname}/rollback', [SnapshotController::class, 'rollback'])
-    ->middleware(['auth', 'verified'])
-    ->name('vms.snapshots.rollback');
-
-Route::delete('/vms/{vmid}/snapshots/{snapname}', [SnapshotController::class, 'destroy'])
-    ->middleware(['auth', 'verified'])
-    ->name('vms.snapshots.destroy');
-
-use App\Http\Controllers\StorageController;
-
-Route::get('/storage', [StorageController::class, 'index'])
-    ->middleware(['auth', 'verified'])
-    ->name('storage.index');
-
+// Profile Routes
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
